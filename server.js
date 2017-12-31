@@ -1,71 +1,77 @@
-var express = require('express');
-var app = express();
-var http = require('http').Server(app);
-var io = require('socket.io')(http);
-var fs = require('fs');
-var path = require('path');
- 
-var spawn = require('child_process').spawn;
-var proc;
- 
-app.use('/', express.static(path.join(__dirname, 'public')));
- 
-app.get('/', function(req, res) {
-  res.sendFile(__dirname + '/index.html');
+let express = require('express');
+let app = express();
+let cors = require('cors');
+let spawn = require('child_process').spawn;
+let ffmpeg = require('fluent-ffmpeg');
+let fs = require('fs');
+let crypto = require('crypto');
+
+// Config information
+const config = require('./config.json');
+const port = config.port;
+const encrypted = config.encrypted;
+
+// Camera stream options
+const raspividOptions = ['-o', '-', '-t', '0', '-vf', '-w', '1280', '-h', '720', '-fps', '25']; 
+const ffmpegInputOptions = ['-re'];
+const ffmpegOutputOptions = ['-vcodec copy', '-hls_flags delete_segments'];
+
+// Public directory that stores the stream files
+const cameraDirectory = 'camera';
+
+// Create the camera output directory if it doesn't already exist
+// We don't want the async version since this only is run once at startup and the directory needs to be created
+// before we can really do anything else
+if (fs.existsSync(cameraDirectory) === false) {
+  fs.mkdirSync(cameraDirectory);
+}
+
+// Encrypt HLS stream?
+if (encrypted) {
+  // Encryption files
+  const keyFileName = 'enc.key';
+  const keyInfoFileName = 'enc.keyinfo';
+
+  // Setup encryption
+  let keyFileContents = crypto.randomBytes(16);
+  let initializationVector = crypto.randomBytes(16).toString('hex');
+  let keyInfoFileContents = `${keyFileName}\n./${cameraDirectory}/${keyFileName}\n${initializationVector}`;
+
+  // Populate the encryption files, overwrite them if necessary
+  fs.writeFileSync(`./${cameraDirectory}/${keyFileName}`, keyFileContents);
+  fs.writeFileSync(keyInfoFileName, keyInfoFileContents);
+
+  // Add an option to the output stream to include the key info file in the livestream playlist
+  ffmpegOutputOptions.push(`-hls_key_info_file ${keyInfoFileName}`);
+}
+
+// Start the camera stream
+let cameraStream = spawn('raspivid', raspividOptions);
+
+// Convert the camera stream to hls
+let conversion = new ffmpeg(cameraStream.stdout).noAudio().format('hls').inputOptions(ffmpegInputOptions).outputOptions(ffmpegOutputOptions).output(`${cameraDirectory}/livestream.m3u8`);
+
+// Set up stream conversion listeners
+conversion.on('error', function(err, stdout, stderr) {
+  console.log('Cannot process video: ' + err.message);
 });
 
-http.listen(3000, function() {
-  console.log('listening on *:3000');
+conversion.on('start', function(commandLine) {
+  console.log('Spawned Ffmpeg with command: ' + commandLine);
 });
- 
-var sockets = {};
- 
-io.on('connection', function(socket) {
- 
-  sockets[socket.id] = socket;
-  console.log("Total clients connected : ", Object.keys(sockets).length);
- 
-  socket.on('disconnect', function() {
-    delete sockets[socket.id];
- 
-    // no more sockets, kill the stream
-    if (Object.keys(sockets).length == 0) {
-      app.set('watchingFile', false);
-      if (proc) proc.kill();
-      fs.unwatchFile('./public/image_stream.jpg');
-    }
-  });
- 
-  socket.on('start-stream', function() {
-    startStreaming(io);
-  });
- 
+
+conversion.on('stderr', function(stderrLine) {
+  console.log('Stderr output: ' + stderrLine);
 });
- 
-function stopStreaming() {
-  if (Object.keys(sockets).length == 0) {
-    app.set('watchingFile', false);
-    if (proc) proc.kill();
-    fs.unwatchFile('./public/image_stream.jpg');
-  }
-}
- 
-function startStreaming(io) {
- 
-  if (app.get('watchingFile')) {
-    io.sockets.emit('liveStream', 'image_stream.jpg?_t=' + (Math.random() * 100000));
-    return;
-  }
- 
-  var args = ["-w", "640", "-h", "480", "-o", "./public/image_stream.jpg", "-t", "999999999", "-tl", "100"];
-  proc = spawn('raspistill', args);
- 
-  console.log('Watching for changes...');
- 
-  app.set('watchingFile', true);
- 
-  fs.watchFile('./public/image_stream.jpg', function(current, previous) {
-    io.sockets.emit('liveStream', 'image_stream.jpg?_t=' + (Math.random() * 100000));
-  })
- 
-}
+
+// Start the conversion
+conversion.run();
+
+// Allows CORS
+app.use(cors());
+
+// Set up a fileserver for the streaming video files
+app.use(`/${cameraDirectory}`, express.static(cameraDirectory));
+
+app.listen(port);
+console.log(`STARTING CAMERA STREAM SERVER AT PORT ${port}`);
