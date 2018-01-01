@@ -12,7 +12,7 @@ const port = config.port;
 const encrypted = config.encrypted;
 
 // Camera stream options
-const raspividOptions = ['-o', '-', '-t', '0', '-vf', '-w', '1280', '-h', '720', '-fps', '25']; 
+const raspividOptions = ['-o', '-', '-t', '0', '-vf', '-w', '1280', '-h', '720', '-fps', '25']; // Cambiar a 1080p30fps - 720p60fps
 const ffmpegInputOptions = ['-re'];
 const ffmpegOutputOptions = ['-vcodec copy', '-hls_flags delete_segments'];
 
