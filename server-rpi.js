@@ -13,7 +13,6 @@ var options = {
   width : 1280,
   height: 720,
   fps : 30,
-  vflip: true,
 };
 
 const WebStreamerServer = require('./lib/raspivid');
