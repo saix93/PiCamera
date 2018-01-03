@@ -9,6 +9,12 @@
 const http    = require('http');
 const express = require('express');
 
+var options = {
+  width : 1280,
+  height: 720,
+  fps : 30,
+  vflip: true,
+};
 
 const WebStreamerServer = require('./lib/raspivid');
 
@@ -19,6 +25,6 @@ app.use(express.static(__dirname + '/public'));
 app.use(express.static(__dirname + '/vendor/dist'));
 
 const server  = http.createServer(app);
-const silence = new WebStreamerServer(server);
+const silence = new WebStreamerServer(server, options);
 
 server.listen(8080);
