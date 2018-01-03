@@ -1,30 +1,50 @@
-# raspi-live
-raspi-live is a Node.js Express webserver that takes streaming video from the Raspberry Pi Camera module and makes it available on the web via [HLS](https://en.wikipedia.org/wiki/HTTP_Live_Streaming).
+# Motivation
 
-## Usage
-Run the usual `npm start` after downloading all of the dependencies. The application will start providing AES-128 encrypted streaming video from the Raspberry Pi camera module via the `/camera/livestream.m3u8` resource on port 8080.
+This is a very simple h264 video player (that can run on live stream) for your browser.
+You might use this with raspicam raw h264 stream.
+This is a player around [Broadway](https://github.com/mbebenita/Broadway) Decoder, with very simple API.
+NAL unit (h264 frames) are split on the server side, transported using websocket, and sent to the decoded (with frame dropping, if necessary)
 
-To disable stream encryption or change the port number, edit the `config.json` file.
+[![Version](https://img.shields.io/npm/v/h264-live-player.svg)](https://www.npmjs.com/package/h264-live-player)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](http://opensource.org/licenses/MIT)
 
-## Installation
-raspi-live only supports streaming video from the Raspberry Pi camera module. Here's a the official documentation on how to connect and configure it: https://www.raspberrypi.org/documentation/usage/camera/.
 
-Since this is a Node.js application that has Node.js dependencies, run `npm install` as well.
+# History
+* I was targetting a real-time camera video feedback (no audio/surveillance cam) in the browser
+* There is no solution for "real time" mp4 video creation / playback (ffmpeg, mp4box.js, mp4parser - _boxing_ _takes_ _time_)
+* Media Source Extension is a dead end (mp4 boxing is far too hard to re-create on the client side)
+* [Broadway](https://github.com/mbebenita/Broadway) provide the crazy emscripten/asm build of a h264 encoder accelerated by webGL canvas
+* Here is all the glue we need, enjoy ;-)
 
-raspi-live uses FFmpeg, a video conversion command-line utility, to process the streaming H.264 video that the Raspberry Pi camera module outputs. Here's how to install it on your Raspberry Pi:
 
-1. Download and configure FFmpeg via:
+# Installation/demo
 ```
-git clone https://github.com/FFmpeg/FFmpeg.git
-cd FFmpeg
-sudo ./configure --arch=armel --target-os=linux --enable-gpl --enable-omx --enable-omx-rpi --enable-nonfree
+git clone git@github.com:131/h264-live-player.git player
+cd player
+npm install
+
+node server-rpi.js    # run on a rpi for a webcam demo
+node server-static.js # for sample video (static) file delivery
+node server-tcp.js    # for a remote tcp (rpi video feed) sample
+node server-ffmpeg    # usefull on win32 to debug the live feed (use ffmpeg & your directshow device / webcam) 
+
+# browse to http://127.0.0.1:8080/ for a demo player
+
 ```
-2. If you're working with a Raspbery Pi 2 or 3, then run `sudo make -j4` to build FFmpeg. If you're working with a Raspberry Pi Zero, then run `sudo make`.
-3. Install FFmpeg via `sudo make install` regardless of the model of your Raspberry Pi.
-4. Delete the FFmpeg directory that was created during the git clone process in Step 1. FFmpeg has already been installed and the directory is no longer needed.
 
-## Video Stream Playback
-raspi-live is only concerned with streaming video from the camera module and does not offer a playback solution. Some browsers [support HLS natively](https://developer.mozilla.org/en-US/Apps/Fundamentals/Audio_and_video_delivery/Live_streaming_web_audio_and_video#HLS) and others support it through JavaScript and [MSE](https://en.wikipedia.org/wiki/Media_Source_Extensions). If you're looking for a place to start, [hls.js](https://github.com/video-dev/hls.js) is a good option.
+# Recommendations
+* Broadway h264 Decoder can only work with **h264 baseline profile**
+* [**Use a SANE birate**](https://www.dr-lex.be/info-stuff/videocalc.html)
+* Browserify FTW
+* Once you understand how to integrate the server-side, feel free to use [h264-live-player](https://www.npmjs.com/package/h264-live-player) npm package in your client side app (see vendor/)
+* Use [uws](https://github.com/uWebSockets/uWebSockets) (instead of ws) as websocket server
 
-## Why HLS instead of MPEG DASH?
-While MPEG DASH is a more open standard for streaming video over the internet, HLS is more widely adopted and supported. FFmpeg, chosen for its near-ubiquitousness in the video processing space, technically supports both formats but to varying degrees. The MPEG DASH format is not listed in the [FFmpeg format documentation](https://www.ffmpeg.org/ffmpeg-formats.html) and there are minor performance issues in terms of framerate drops and and degraded image quality with FFmpeg's implementation. While these performance issues can likely be configured away with more advanced options, HLS is simply easier to implement out of the box.
+
+# Credits
+* [131](mailto:131.js@cloudyks.org)
+* [Broadway](https://github.com/mbebenita/Broadway)
+* [urbenlegend/WebStreamer](https://github.com/urbenlegend/WebStreamer)
+
+
+# Keywords / shout box
+raspberry, mp4box, h264, nal, raspivid, mse, media source extension, iso, raspicam, bitrate, realtime, video, mp4, ffmpeg, websocket, ws, socket.io "Let's have a beer and talk in Paris"

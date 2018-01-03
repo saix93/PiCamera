@@ -1,5 +1,3 @@
 node_modules
-*.log
-camera
-*.key
-*.keyinfo
+public/_main.js
+

@@ -1,16 +1,22 @@
 {
-  "name": "raspi-security-cam",
-  "version": "0.0.1",
-  "description": "Stream video from the raspberry pi to the web",
+  "name": "h264-live-stream-demo-server",
+  "private": true,
+  "version": "1.0.0",
+  "description": "",
   "main": "server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "install": "cd vendor && npm install",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
   },
-  "author": "Jared Petersen <jaredtoddpetersen@gmail.com> (https://github.com/jaredpetersen/)",
-  "license": "MIT",
+  "author": "",
+  "license": "ISC",
   "dependencies": {
-    "cors": "^2.8.4",
-    "express": "^4.15.2",
-    "fluent-ffmpeg": "^2.1.0"
-  }
+    "express": "^3.21.2",
+    "mout": "^1.0.0",
+    "stream-split": "^1.1.0",
+    "stream-throttle": "^0.1.3",
+    "ws": "^0.8.0"
+  },
+  "devDependencies": {}
 }
