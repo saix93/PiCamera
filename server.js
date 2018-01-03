@@ -17,7 +17,7 @@ const ffmpegInputOptions = ['-re'];
 const ffmpegOutputOptions = ['-vcodec copy', '-hls_flags delete_segments'];
 
 // Public directory that stores the stream files
-const cameraDirectory = 'camera';
+const cameraDirectory = 'public/camera';
 
 // Create the camera output directory if it doesn't already exist
 // We don't want the async version since this only is run once at startup and the directory needs to be created
@@ -71,7 +71,8 @@ conversion.run();
 app.use(cors());
 
 // Set up a fileserver for the streaming video files
-app.use(`/${cameraDirectory}`, express.static(cameraDirectory));
+// app.use(`/${cameraDirectory}`, express.static(cameraDirectory));
+app.use(express.static(__dirname + "/public"));
 
 app.listen(port);
 console.log(`STARTING CAMERA STREAM SERVER AT PORT ${port}`);
